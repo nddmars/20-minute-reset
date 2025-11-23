@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- Mobile App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#f0fdf4">
+    <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/npm/lucide-static@0.462.0/icons/activity.svg">
+    <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/npm/lucide-static@0.462.0/icons/activity.svg">
+
+    <title>20 Minute Reset</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdf4;
+            color: #166534;
+            /* Prevent pull-to-refresh on mobile */
+            overscroll-behavior-y: none;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .btn-hover {
+            transition: all 0.2s ease;
+        }
+        .btn-hover:active {
+            transform: scale(0.95);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Modal Transitions */
+        .modal {
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main App Container -->
+    <div class="glass-panel w-full max-w-md rounded-3xl p-8 relative overflow-hidden">
+        
+        <!-- Background Orbs -->
+        <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 rounded-full bg-green-200 opacity-50 blur-2xl"></div>
+        <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 rounded-full bg-blue-200 opacity-50 blur-2xl"></div>
+
+        <!-- Header -->
+        <div class="relative z-10 flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold flex items-center gap-2 text-green-800">
+                <i data-lucide="activity" class="w-6 h-6"></i>
+                20 Minute Reset
+            </h1>
+            <div class="flex gap-2">
+                <button id="installBtn" class="p-2 rounded-full hover:bg-green-100 text-green-700 transition-colors" title="Install App">
+                    <i data-lucide="smartphone" class="w-5 h-5"></i>
+                </button>
+                <button id="settingsBtn" class="p-2 rounded-full hover:bg-green-100 text-green-700 transition-colors" title="Settings">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Timer Display -->
+        <div class="relative z-10 flex flex-col items-center justify-center mb-8">
+            <div class="relative w-64 h-64">
+                <svg class="w-full h-full" width="256" height="256" viewBox="0 0 256 256">
+                    <circle stroke="#dcfce7" stroke-width="12" fill="transparent" r="110" cx="128" cy="128"/>
+                    <circle 
+                        id="progressRing"
+                        class="progress-ring__circle"
+                        stroke="#22c55e" 
+                        stroke-width="12" 
+                        stroke-linecap="round"
+                        fill="transparent" 
+                        r="110" 
+                        cx="128" 
+                        cy="128"
+                    />
+                </svg>
+                <div class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center text-center">
+                    <span id="timeDisplay" class="text-5xl font-bold text-gray-800 tracking-tight">20:00</span>
+                    <span id="statusText" class="text-sm text-gray-500 font-medium mt-2 uppercase tracking-wide">Ready</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Card -->
+        <div id="activityBox" class="relative z-10 bg-white border border-green-100 rounded-xl p-4 mb-8 shadow-sm hidden fade-in">
+            <div class="flex items-start gap-3">
+                <div class="p-2 bg-green-100 rounded-lg text-green-600">
+                    <i data-lucide="bell-ring" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-800 text-sm">Time to Move!</h3>
+                    <p id="currentActivity" class="text-gray-600 text-sm mt-1 leading-relaxed">Activity goes here...</p>
+                </div>
+            </div>
+            <button id="completeBtn" class="w-full mt-3 bg-green-50 text-green-700 py-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">
+                Done! Start Next Loop
+            </button>
+        </div>
+
+        <!-- Main Controls -->
+        <div class="relative z-10 flex gap-4 justify-center">
+            <button id="toggleBtn" class="btn-hover flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-xl shadow-lg shadow-green-200 flex items-center justify-center gap-2">
+                <i data-lucide="play" class="w-5 h-5"></i>
+                <span id="toggleBtnText">Start Loop</span>
+            </button>
+            <button id="resetBtn" class="btn-hover w-16 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl flex items-center justify-center shadow-md">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div id="permWarning" class="mt-4 text-center hidden">
+            <button id="requestPermBtn" class="text-xs text-blue-600 underline">Enable Notifications</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl transform transition-all scale-95">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">Settings</h2>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Duration (Minutes)</label>
+                <input type="number" id="durationInput" value="20" min="1" max="120" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+            </div>
+            <div class="mb-6 flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-700">Sound Effects</span>
+                <button id="soundToggle" class="w-12 h-6 rounded-full bg-green-500 relative transition-colors">
+                    <span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all transform translate-x-0"></span>
+                </button>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button id="closeSettings" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
+                <button id="saveSettings" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Install Guide Modal -->
+    <div id="installModal" class="modal fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
+            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600">
+                <i data-lucide="download" class="w-6 h-6"></i>
+            </div>
+            <h2 class="text-lg font-bold text-gray-800 mb-2">Install App</h2>
+            <p class="text-sm text-gray-600 mb-4">Add to your home screen for the full app experience.</p>
+            
+            <div id="iosInstructions" class="hidden text-left bg-gray-50 p-4 rounded-xl text-sm space-y-2 mb-4">
+                <p class="font-semibold text-gray-800">iPhone / iPad:</p>
+                <p>1. Tap the <strong>Share</strong> button <i data-lucide="share" class="inline w-4 h-4"></i> below.</p>
+                <p>2. Scroll down and tap <strong>Add to Home Screen</strong> <i data-lucide="plus-square" class="inline w-4 h-4"></i>.</p>
+            </div>
+
+            <div id="androidInstructions" class="hidden text-left bg-gray-50 p-4 rounded-xl text-sm space-y-2 mb-4">
+                <p class="font-semibold text-gray-800">Android:</p>
+                <p>1. Tap the <strong>Menu</strong> (3 dots) top right.</p>
+                <p>2. Tap <strong>Add to Home Screen</strong> or <strong>Install App</strong>.</p>
+            </div>
+
+            <button id="closeInstall" class="w-full py-3 bg-gray-100 text-gray-800 font-semibold rounded-xl hover:bg-gray-200">Got it</button>
+        </div>
+    </div>
+
+    <script>
+        // --- PWA: Inject Manifest Dynamically ---
+        // This trick allows the file to be "installed" without needing a separate manifest.json file
+        const manifest = {
+            name: "20 Minute Reset",
+            short_name: "20m Reset",
+            start_url: ".",
+            display: "standalone",
+            background_color: "#f0fdf4",
+            theme_color: "#f0fdf4",
+            icons: [{
+                src: "https://cdn.jsdelivr.net/npm/lucide-static@0.462.0/icons/activity.svg",
+                sizes: "192x192",
+                type: "image/svg+xml",
+                purpose: "any maskable"
+            }]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestUrl;
+        document.head.appendChild(link);
+
+        // --- App State ---
+        let duration = 20 * 60;
+        let timeLeft = duration;
+        let timerId = null;
+        let isRunning = false;
+        let soundEnabled = true;
+
+        // --- DOM Elements ---
+        const timeDisplay = document.getElementById('timeDisplay');
+        const statusText = document.getElementById('statusText');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const toggleBtnText = document.getElementById('toggleBtnText');
+        const toggleBtnIcon = toggleBtn.querySelector('i');
+        const resetBtn = document.getElementById('resetBtn');
+        const progressRing = document.getElementById('progressRing');
+        const activityBox = document.getElementById('activityBox');
+        const currentActivity = document.getElementById('currentActivity');
+        const completeBtn = document.getElementById('completeBtn');
+
+        // Modals
+        const settingsModal = document.getElementById('settingsModal');
+        const installModal = document.getElementById('installModal');
+        
+        // Settings Inputs
+        const durationInput = document.getElementById('durationInput');
+        const soundToggle = document.getElementById('soundToggle');
+
+        // --- Constants ---
+        const CIRCUMFERENCE = 2 * Math.PI * 110;
+        progressRing.style.strokeDasharray = `${CIRCUMFERENCE} ${CIRCUMFERENCE}`;
+        progressRing.style.strokeDashoffset = 0;
+
+        const ACTIVITIES = [
+            "Drink a full glass of water 💧",
+            "Stand up and do a big stretch 🙆",
+            "Look away from the screen (20ft) 👀",
+            "Do 10 squats or calf raises 🦵",
+            "Walk around the room twice 🚶",
+            "Correct your posture 🪑",
+            "Take 5 deep breaths 🌬️",
+            "Roll your neck gently 🔄"
+        ];
+
+        // --- Audio Context ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playAlertSound() {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); 
+            oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
+            
+            // Mobile vibration if available
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function setProgress(percent) {
+            const offset = CIRCUMFERENCE - (percent / 100) * CIRCUMFERENCE;
+            progressRing.style.strokeDashoffset = offset;
+        }
+
+        function sendNotification(msg) {
+            if (Notification.permission === "granted") {
+                // On mobile, notifications might be blocked unless app is installed
+                try {
+                    new Notification("20 Minute Reset", {
+                        body: msg,
+                        icon: "https://cdn.jsdelivr.net/npm/lucide-static@0.462.0/icons/activity.svg",
+                        vibrate: [200, 100, 200]
+                    });
+                } catch (e) { console.log("Notification failed", e); }
+            }
+        }
+
+        // --- Core Logic ---
+        function updateDisplay() {
+            timeDisplay.textContent = formatTime(timeLeft);
+            const totalSeconds = durationInput.value * 60;
+            const percent = (timeLeft / totalSeconds) * 100;
+            setProgress(percent);
+        }
+
+        function finishLoop() {
+            stopTimer();
+            timeLeft = 0;
+            updateDisplay();
+            playAlertSound();
+            
+            const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
+            currentActivity.textContent = activity;
+            activityBox.classList.remove('hidden');
+            statusText.textContent = "Break Time!";
+            statusText.classList.add('text-green-600', 'font-bold');
+            
+            sendNotification(activity);
+            document.title = "🔔 Time to move!";
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            if (timeLeft <= 0) {
+                timeLeft = durationInput.value * 60;
+                activityBox.classList.add('hidden');
+                document.title = "20 Minute Reset";
+            }
+            
+            isRunning = true;
+            statusText.textContent = "Focusing...";
+            statusText.classList.remove('text-green-600', 'font-bold');
+            
+            toggleBtnText.textContent = "Pause";
+            toggleBtnIcon.setAttribute('data-lucide', 'pause');
+            lucide.createIcons();
+            
+            toggleBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            toggleBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+
+            timerId = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+                document.title = `(${formatTime(timeLeft)}) 20 Minute Reset`;
+                if (timeLeft <= 0) finishLoop();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (!isRunning) return;
+            clearInterval(timerId);
+            isRunning = false;
+            
+            toggleBtnText.textContent = "Resume";
+            statusText.textContent = "Paused";
+            
+            toggleBtnIcon.setAttribute('data-lucide', 'play');
+            lucide.createIcons();
+            
+            toggleBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+            toggleBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+        }
+
+        function resetTimer() {
+            stopTimer();
+            timeLeft = durationInput.value * 60;
+            updateDisplay();
+            activityBox.classList.add('hidden');
+            statusText.textContent = "Ready";
+            toggleBtnText.textContent = "Start Loop";
+            document.title = "20 Minute Reset";
+        }
+
+        // --- Events ---
+        toggleBtn.addEventListener('click', () => {
+            if (isRunning) stopTimer();
+            else startTimer();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        });
+
+        resetBtn.addEventListener('click', resetTimer);
+        completeBtn.addEventListener('click', () => { resetTimer(); startTimer(); });
+
+        // Settings Handling
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            settingsModal.classList.add('active');
+        });
+        document.getElementById('closeSettings').addEventListener('click', () => {
+            settingsModal.classList.remove('active');
+            durationInput.value = Math.floor(duration / 60);
+        });
+        document.getElementById('saveSettings').addEventListener('click', () => {
+            const newMins = parseInt(durationInput.value);
+            if (newMins > 0) {
+                duration = newMins * 60;
+                if (!isRunning) {
+                    timeLeft = duration;
+                    updateDisplay();
+                }
+            }
+            settingsModal.classList.remove('active');
+        });
+
+        // Sound Toggle
+        soundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            const toggleThumb = soundToggle.querySelector('span');
+            if (soundEnabled) {
+                soundToggle.classList.add('bg-green-500');
+                soundToggle.classList.remove('bg-gray-300');
+                toggleThumb.style.transform = 'translateX(0)';
+                toggleThumb.classList.remove('right-auto', 'left-1');
+                toggleThumb.classList.add('right-1');
+            } else {
+                soundToggle.classList.remove('bg-green-500');
+                soundToggle.classList.add('bg-gray-300');
+                toggleThumb.style.transform = 'translateX(-24px)';
+            }
+        });
+
+        // Install Handling
+        const installModalBtn = document.getElementById('installBtn');
+        const installModalEl = document.getElementById('installModal');
+        const iosInstructions = document.getElementById('iosInstructions');
+        const androidInstructions = document.getElementById('androidInstructions');
+
+        installModalBtn.addEventListener('click', () => {
+            installModalEl.classList.add('active');
+            
+            // Detect OS for instructions
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                iosInstructions.classList.remove('hidden');
+                androidInstructions.classList.add('hidden');
+            } else {
+                // Default to Android/PC
+                iosInstructions.classList.add('hidden');
+                androidInstructions.classList.remove('hidden');
+            }
+        });
+        
+        document.getElementById('closeInstall').addEventListener('click', () => {
+            installModalEl.classList.remove('active');
+        });
+
+        // Notification Permissions
+        const permWarning = document.getElementById('permWarning');
+        const requestPermBtn = document.getElementById('requestPermBtn');
+
+        function checkNotificationPerm() {
+            if ("Notification" in window && Notification.permission === "default") {
+                permWarning.classList.remove('hidden');
+            }
+        }
+        requestPermBtn.addEventListener('click', () => {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    permWarning.classList.add('hidden');
+                    new Notification("20 Minute Reset", { body: "Notifications enabled!" });
+                }
+            });
+        });
+
+        // Init
+        checkNotificationPerm();
+        updateDisplay();
+        lucide.createIcons();
+
+        // Check if standalone (installed)
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            installModalBtn.style.display = 'none'; // Hide install button if already installed
+        }
+    </script>
+</body>
+</html>
